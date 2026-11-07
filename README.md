@@ -87,7 +87,11 @@ references/
 ├── framework.md      主题定框架 / 文档梳逻辑 / 四模型选型（完整填空模板）
 ├── image.md          配图反推 / 人物双重曝光
 └── video.md          图生视频
+examples/
+└── framework-filled.md  一次真实走完「主题定框架」的输出样例
 ```
+
+想知道装完到底会得到什么，先看 [examples/framework-filled.md](examples/framework-filled.md)。
 
 ## 什么时候它不接
 
