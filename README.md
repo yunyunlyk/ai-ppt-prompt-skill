@@ -63,6 +63,49 @@ rm -rf /tmp/ai-ppt-prompt-skill
 
 维护约定：这个仓库是唯一发布源，任何改动都同时更新本机 `$DSH_HOME/skills/ai-ppt-prompt/` 与这里，两边保持一致后再提交。
 
+### 自动更新（可选）
+
+前提：技能目录是 git 克隆出来的，不是拷贝的。上面的安装命令已经是 clone，符合条件；如果你是解压 zip 装的，先删掉目录重新 clone 一次。
+
+建一个更新脚本 `$env:DSH_HOME\scripts\ai-ppt-prompt-update.ps1`：
+
+```powershell
+$repo = Join-Path $env:DSH_HOME 'skills\ai-ppt-prompt'
+$logDir = Join-Path $env:DSH_HOME 'logs'
+New-Item -ItemType Directory -Force $logDir | Out-Null
+$log = Join-Path $logDir 'ai-ppt-prompt-update.log'
+
+if (-not (Test-Path (Join-Path $repo '.git'))) { "SKIP: not a git repo" | Add-Content $log; exit 1 }
+Push-Location $repo
+try {
+    $before = (git rev-parse --short HEAD).Trim()
+    $out = git pull --ff-only 2>&1 | Out-String
+    $after = (git rev-parse --short HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) { "ERROR: $($out.Trim())" | Add-Content $log }
+    elseif ($before -ne $after) { "UPDATED: $before -> $after" | Add-Content $log }
+    else { "OK: up to date ($before)" | Add-Content $log }
+} finally { Pop-Location }
+```
+
+> 脚本里别写中文。PowerShell 5.1 读无 BOM 的 UTF-8 会按 ANSI 解码，中文字节会把后面的引号或括号吃掉，直接解析报错。
+
+注册计划任务（登录时 + 每 6 小时，非管理员即可）：
+
+```powershell
+$script = Join-Path $env:DSH_HOME 'scripts\ai-ppt-prompt-update.ps1'
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "{0}"' -f $script)
+$t1 = New-ScheduledTaskTrigger -AtLogOn
+$t2 = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2) -RepetitionInterval (New-TimeSpan -Hours 6) -RepetitionDuration (New-TimeSpan -Days 3650)
+Register-ScheduledTask -TaskName 'ai-ppt-prompt-sync' -Action $action -Trigger @($t1,$t2) -Force
+```
+
+- 手动跑一次：`Start-ScheduledTask -TaskName ai-ppt-prompt-sync`
+- 看日志：`Get-Content "$env:DSH_HOME\logs\ai-ppt-prompt-update.log" -Tail 20`
+- 卸载：`Unregister-ScheduledTask -TaskName ai-ppt-prompt-sync -Confirm:$false`
+
+拉取只做 `--ff-only`：你改过本地文件的话它会拒绝合并并写一条 ERROR 到日志，**不会覆盖你的改动**。DSH 有目录监听，拉下来的新版本下一步就生效，不用重启。
+
+
 ## 使用
 
 不用记命令，按正常说话方式提需求就会触发。
