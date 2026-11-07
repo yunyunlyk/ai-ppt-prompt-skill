@@ -51,6 +51,10 @@ rm -rf /tmp/ai-ppt-prompt-skill
 
 在 DSH 里让模型加载这个技能（`skill` 工具，name 传 `ai-ppt-prompt`），能返回技能正文、且 base directory 指向你刚拷的目录，就是成功。DSH 有目录监听，装完下一步就生效，不用重启。
 
+### 更新
+
+没有自动更新，重新执行一次安装命令覆盖即可（`git clone --depth 1` + `Copy-Item -Force` / `cp -r`）。改动过的本地副本会被覆盖，要留就自己先备份。
+
 ## 使用
 
 不用记命令，按正常说话方式提需求就会触发。
