@@ -1,5 +1,7 @@
 # ai-ppt-prompt
 
+当前版本：**v1.0.0**（变更记录见 [CHANGELOG.md](CHANGELOG.md)）
+
 一个给 AI agent 用的技能包：只要你提到 PPT / 演示文稿，它就自动判断你手里有什么，套用对应的提示词模板，把占位符填成你的实际内容，直接产出可用成品——而不是把一份带 `[方括号]` 的空模板丢回给你。
 
 ## 它解决什么
@@ -79,13 +81,19 @@ if (-not (Test-Path (Join-Path $repo '.git'))) { "SKIP: not a git repo" | Add-Co
 Push-Location $repo
 try {
     $before = (git rev-parse --short HEAD).Trim()
+    git fetch --tags --prune --quiet 2>&1 | Out-Null
     $out = git pull --ff-only 2>&1 | Out-String
+    $code = $LASTEXITCODE
     $after = (git rev-parse --short HEAD).Trim()
-    if ($LASTEXITCODE -ne 0) { "ERROR: $($out.Trim())" | Add-Content $log }
-    elseif ($before -ne $after) { "UPDATED: $before -> $after" | Add-Content $log }
-    else { "OK: up to date ($before)" | Add-Content $log }
+    $tag = (git describe --tags --abbrev=0 2>$null)
+    $ver = if ($tag) { $tag } else { 'no-tag' }
+    if ($code -ne 0) { "ERROR: $($out.Trim()) ($before -> $after)" | Add-Content $log }
+    elseif ($before -ne $after) { "UPDATED: $before -> $after ($ver)" | Add-Content $log }
+    else { "OK: up to date ($before, $ver)" | Add-Content $log }
 } finally { Pop-Location }
 ```
+
+`fetch --tags` 是为了让本地也留下历史版本——更新只跟 `main`，但 tag 全都在，随时能 `git checkout v1.0.0` 回滚。
 
 > 脚本里别写中文。PowerShell 5.1 读无 BOM 的 UTF-8 会按 ANSI 解码，中文字节会把后面的引号或括号吃掉，直接解析报错。
 
@@ -166,6 +174,26 @@ examples/
 - 工具操作类问题（PPT 转 PDF、文件打不开）——直接答，不套模板。
 - 你要的是成片本身（.pptx / 网页版幻灯片）——那是做稿工具的事，这个技能只管「说什么、怎么配图」。
 - 没有具体主题的闲聊。
+
+## 版本与发布
+
+版本号走语义化版本，git tag 形如 `v1.0.0`，**tag 是唯一的版本事实来源**；每个 tag 在 [Releases](https://github.com/yunyunlyk/ai-ppt-prompt-skill/releases) 上都有对应发行版，并配一条 [CHANGELOG](CHANGELOG.md) 记录。
+
+每次改动都走完整一圈，不因为「只改了几个字」就跳过：
+
+1. 改内容 → 更新 `CHANGELOG.md` 对应段落。
+2. `git commit` → `git tag -a vX.Y.Z -m "..."` → `git push --follow-tags`。
+3. 在 GitHub 用 CHANGELOG 里那一节建 Release。
+
+版本号怎么涨：
+
+| 改动性质 | 版本 |
+| --- | --- |
+| 措辞、示例、错别字 | patch（1.0.x） |
+| 新增模板、新增判断规则、新增参考文件 | minor（1.x.0） |
+| 改路由结构、改输出格式、删字段（破坏兼容） | major（x.0.0） |
+
+自动更新拉的是 `main`，和版本号无关；但每个版本都有 tag，所以随时能 `git checkout v1.0.0` 回到任意一版。
 
 ## 来源与许可
 
