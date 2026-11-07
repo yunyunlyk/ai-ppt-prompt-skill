@@ -61,6 +61,8 @@ rm -rf /tmp/ai-ppt-prompt-skill
 
 没有自动更新，重新执行一次安装命令覆盖即可（`git clone --depth 1` + `Copy-Item -Force` / `cp -r`）。改动过的本地副本会被覆盖，要留就自己先备份。
 
+维护约定：这个仓库是唯一发布源，任何改动都同时更新本机 `$DSH_HOME/skills/ai-ppt-prompt/` 与这里，两边保持一致后再提交。
+
 ## 使用
 
 不用记命令，按正常说话方式提需求就会触发。
